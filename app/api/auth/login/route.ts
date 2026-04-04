@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const db = getLeadDb();
 
     // Look up user
-    const user = db.prepare('SELECT * FROM admin_users WHERE username = ? AND is_active = 1').get(username) as {
+    const user = db.prepare('SELECT * FROM admin_users WHERE username = ?').get(username) as {
       id: string; username: string; password_hash: string;
     } | undefined;
 
@@ -28,14 +28,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    db.prepare('UPDATE admin_users SET last_login = datetime("now") WHERE id = ?').run(user.id);
+
     // Create session
     const sessionId = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    db.prepare(`
-      INSERT INTO sessions (id, user_id, expires_at, created_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(sessionId, user.id, expiresAt);
+    db.prepare(
+      'INSERT INTO sessions (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)'
+    ).run(sessionId, user.id, sessionId, expiresAt);
 
     // Set cookie
     const response = NextResponse.json({ success: true });
