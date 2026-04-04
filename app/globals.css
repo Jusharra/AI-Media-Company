@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Public site vars ─────────────────────────────── */
+:root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-source-serif: 'Source Serif 4', Georgia, serif;
+  --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+  --font-dm-mono: 'DM Mono', monospace;
+}
+
+/* ── Admin vars ───────────────────────────────────── */
+.admin-theme {
+  --foreground-rgb: 228, 228, 231;
+  --background: #09090b;
+}
+
+/* ── Admin scrollbar ──────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #18181b; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* ── Admin animations ─────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* ── Public prose ─────────────────────────────────── */
+.prose-signal {
+  @apply font-serif text-stone-800 leading-relaxed;
+}
+.prose-signal h2 {
+  @apply font-display text-2xl text-stone-900 mt-8 mb-3;
+}
+.prose-signal p {
+  @apply mb-4;
+}
+.prose-signal blockquote {
+  @apply border-l-4 border-amber-600 pl-4 text-stone-600 italic my-6;
+}

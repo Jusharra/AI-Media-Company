@@ -1,0 +1,139 @@
+# ─────────────────────────────────────────────
+# SECRETS & ENVIRONMENT VARIABLES
+# ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ─────────────────────────────────────────────
+# DATABASES — contain founder PII, content,
+# admin credentials, and session tokens
+# ─────────────────────────────────────────────
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ─────────────────────────────────────────────
+# GENERATED OUTPUT — may contain unpublished
+# content, draft articles, founder interviews
+# ─────────────────────────────────────────────
+src/output/
+output/
+drafts/
+
+# ─────────────────────────────────────────────
+# LOGS — may contain API keys in traces,
+# founder data, pipeline state
+# ─────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─────────────────────────────────────────────
+# NEXT.JS BUILD ARTIFACTS
+# ─────────────────────────────────────────────
+.next/
+out/
+admin-dashboard/.next/
+admin-dashboard/out/
+public-site/.next/
+public-site/out/
+
+# ─────────────────────────────────────────────
+# NODE MODULES & LOCK FILES
+# ─────────────────────────────────────────────
+node_modules/
+admin-dashboard/node_modules/
+public-site/node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ─────────────────────────────────────────────
+# TYPESCRIPT BUILD OUTPUT
+# ─────────────────────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+
+# ─────────────────────────────────────────────
+# UPLOADED / GENERATED MEDIA ASSETS
+# may contain founder photos, audio recordings,
+# video files, or AI-generated images
+# ─────────────────────────────────────────────
+public/uploads/
+public-site/public/uploads/
+admin-dashboard/public/uploads/
+*.mp3
+*.mp4
+*.wav
+*.m4a
+*.mov
+*.avi
+
+# ─────────────────────────────────────────────
+# VAPI / RETELL CALL RECORDINGS & TRANSCRIPTS
+# ─────────────────────────────────────────────
+recordings/
+transcripts/
+interviews/raw/
+
+# ─────────────────────────────────────────────
+# CERTIFICATES & KEYS
+# ─────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+
+# ─────────────────────────────────────────────
+# OS / EDITOR ARTIFACTS
+# ─────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────
+# IDE — .vscode kept (settings shared with team)
+# but local user-specific files excluded
+# ─────────────────────────────────────────────
+.vscode/launch.json
+.vscode/*.code-snippets
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ─────────────────────────────────────────────
+# PACKAGE MANAGER CACHES
+# ─────────────────────────────────────────────
+.npm/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.pnp.*
+.cache/
+
+# ─────────────────────────────────────────────
+# TESTING ARTIFACTS
+# ─────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─────────────────────────────────────────────
+# CLAUDE CODE
+# ─────────────────────────────────────────────
+.claude/
