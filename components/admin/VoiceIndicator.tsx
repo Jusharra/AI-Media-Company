@@ -1,13 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import useSWR from 'swr';
 
-interface VoiceIndicatorProps {
-  active?: boolean;
-  label?: string;
-}
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
-export function VoiceIndicator({ active = false, label = 'SIGNAL Assistant' }: VoiceIndicatorProps) {
+export function VoiceIndicator() {
+  const { data } = useSWR('/api/signal/status', fetcher, { refreshInterval: 5000 });
+  const count: number = data?.activePipelines ?? 0;
+  const active = count > 0;
+  const label = active ? `${count} pipeline${count !== 1 ? 's' : ''} running` : 'SIGNAL Engine';
+
   return (
     <div className="flex items-center gap-2">
       <div className="relative w-6 h-6 flex items-center justify-center">

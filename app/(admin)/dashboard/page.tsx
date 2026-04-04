@@ -30,6 +30,9 @@ interface GatePending {
 
 export default function DashboardPage() {
   const { data: status, mutate } = useSWR<PipelineStatusResponse>('/api/signal/status', fetcher, { refreshInterval: 5000 });
+  const { data: rawPipelines } = useSWR('/api/signal/status?view=active', fetcher, { refreshInterval: 5000 });
+  const activePipelines: Array<{ currentStage: string }> = Array.isArray(rawPipelines) ? rawPipelines : [];
+  const activeStages = new Set(activePipelines.map(p => p.currentStage));
   const [activeGate, setActiveGate] = useState<GatePending | null>(null);
 
   const handleDecision = async (taskId: string, gate: GateNumber, decision: GateDecision, notes?: string) => {
@@ -98,7 +101,7 @@ export default function DashboardPage() {
                 name={agent.name}
                 displayName={agent.displayName}
                 description={agent.description}
-                status="idle"
+                status={activeStages.has(agent.name) ? 'active' : 'idle'}
                 index={i}
               />
             ))}

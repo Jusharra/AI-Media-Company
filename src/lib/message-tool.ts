@@ -20,7 +20,8 @@ export function sendMessage(message: Omit<AgentMessage, 'id' | 'timestamp'>): Ag
   const recipientDb = getDb(message.to);
   const senderDb = getDb(message.from);
 
-  const payload = JSON.stringify(message.payload);
+  // Always include taskId in serialized payload so messages can be filtered by task
+  const payload = JSON.stringify({ taskId: message.taskId, ...message.payload });
 
   // Write to recipient's inbox
   recipientDb.prepare(`
@@ -81,7 +82,7 @@ export function getMessageHistory(agentName: AgentName, taskId?: string): AgentM
     ? `SELECT id, from_agent, message_type, payload, created_at FROM messages_in WHERE JSON_EXTRACT(payload, '$.taskId') = ? ORDER BY created_at ASC`
     : `SELECT id, from_agent, message_type, payload, created_at FROM messages_in ORDER BY created_at DESC LIMIT 100`;
 
-  const rows = db.prepare(query).all(taskId ? [taskId] : []) as Array<{
+  const rows = (taskId ? db.prepare(query).all(taskId) : db.prepare(query).all()) as Array<{
     id: string;
     from_agent: string;
     message_type: string;

@@ -173,7 +173,7 @@ export function getPipelineStatus(): PipelineStatusResponse {
   });
 
   const highConfidence = (db.prepare(`
-    SELECT COUNT(DISTINCT task_id) as c FROM messages_in
+    SELECT COUNT(DISTINCT JSON_EXTRACT(payload, '$.taskId')) as c FROM messages_in
     WHERE message_type = 'validation_pass' AND processed = 0
   `).get() as { c: number }).c;
 
@@ -214,9 +214,22 @@ export function getActivePipelines(): PipelineState[] {
   }));
 }
 
-export function getAllPipelines() {
+export function getAllPipelines(): PipelineState[] {
   const db = getLeadDb();
-  return db.prepare('SELECT * FROM pipeline_state ORDER BY created_at DESC LIMIT 100').all();
+  const rows = db.prepare('SELECT * FROM pipeline_state ORDER BY created_at DESC LIMIT 100').all() as Array<Record<string, unknown>>;
+  return rows.map(r => ({
+    taskId: r.task_id as string,
+    entityId: r.entity_id as string,
+    entityName: r.entity_name as string,
+    currentStage: r.current_stage as string,
+    gateStatus: JSON.parse(r.gate_status as string || '{}'),
+    validationScores: JSON.parse(r.validation_scores as string || '{}'),
+    contentIds: JSON.parse(r.content_ids as string || '[]'),
+    distributionUrls: JSON.parse(r.distribution_urls as string || '{}'),
+    monetizationFlag: Boolean(r.monetization_flag),
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+  }));
 }
 
 export function getDealQueue() {

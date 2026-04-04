@@ -25,7 +25,8 @@ const PLATFORM_STYLES: Record<string, { icon: string; color: string }> = {
 };
 
 export default function DistributionPage() {
-  const { data: logs = [] } = useSWR<DistributionLog[]>('/api/signal/status?view=distribution', fetcher, { refreshInterval: 10000 });
+  const { data: raw } = useSWR('/api/signal/status?view=distribution', fetcher, { refreshInterval: 10000 });
+  const logs: DistributionLog[] = Array.isArray(raw) ? raw : [];
 
   const successCount = logs.filter(l => l.status === 'published').length;
   const failedCount = logs.filter(l => l.status === 'failed').length;

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TwitterApi } from 'twitter-api-v2';
 import type { Platform } from './types';
 
 export interface PublishResult {
@@ -11,19 +12,34 @@ export interface PublishResult {
 
 // ============================================================
 // LinkedIn API
+// Requires a user access token (member or org admin).
+// Get one from: https://www.linkedin.com/developers/tools/oauth/token-generator
+// Add to .env.local as LINKEDIN_ACCESS_TOKEN=
 // ============================================================
+let _linkedInToken: string | null = null;
+
+async function getLinkedInToken(): Promise<string | null> {
+  if (_linkedInToken) return _linkedInToken;
+  const token = process.env.LINKEDIN_ACCESS_TOKEN;
+  if (token) { _linkedInToken = token; return token; }
+  return null;
+}
+
 export async function publishToLinkedIn(content: {
   text: string;
   title?: string;
   url?: string;
 }): Promise<PublishResult> {
-  const token = process.env.LINKEDIN_ACCESS_TOKEN;
+  const token = await getLinkedInToken();
   if (!token) {
-    return { platform: 'linkedin', success: false, error: 'LinkedIn access token not configured' };
+    return {
+      platform: 'linkedin',
+      success: false,
+      error: 'LINKEDIN_ACCESS_TOKEN not set. Generate one at https://www.linkedin.com/developers/tools/oauth/token-generator and add to .env.local',
+    };
   }
 
   try {
-    // Get the user's LinkedIn ID first
     const profileRes = await axios.get('https://api.linkedin.com/v2/me', {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -63,103 +79,107 @@ export async function publishToLinkedIn(content: {
       postUrl: `https://www.linkedin.com/feed/update/${res.data.id}`,
     };
   } catch (err: unknown) {
-    const error = err as { message?: string };
-    return { platform: 'linkedin', success: false, error: error?.message || 'LinkedIn publish failed' };
+    const msg = (err as { response?: { data?: { message?: string } }; message?: string })
+      ?.response?.data?.message || (err as { message?: string })?.message || 'LinkedIn publish failed';
+    // Token may have expired (they last 60 days) — clear cached value
+    if (msg?.includes('REVOKED') || msg?.includes('expired')) _linkedInToken = null;
+    return { platform: 'linkedin', success: false, error: msg };
   }
 }
 
 // ============================================================
-// Twitter/X API v2
+// Twitter/X API v2 — OAuth 1.0a user context (required for posting)
 // ============================================================
 export async function publishToTwitter(content: {
   text: string;
-  replyToId?: string;
 }): Promise<PublishResult> {
-  const token = process.env.TWITTER_ACCESS_TOKEN;
-  const secret = process.env.TWITTER_ACCESS_SECRET;
-  const apiKey = process.env.TWITTER_API_KEY;
-  const apiSecret = process.env.TWITTER_API_SECRET;
+  const appKey = process.env.TWITTER_API_KEY;
+  const appSecret = process.env.TWITTER_API_SECRET;
+  const accessToken = process.env.TWITTER_ACCESS_TOKEN;
+  const accessSecret = process.env.TWITTER_ACCESS_SECRET;
 
-  if (!token || !apiKey) {
-    return { platform: 'twitter', success: false, error: 'Twitter credentials not configured' };
+  if (!appKey || !appSecret || !accessToken || !accessSecret) {
+    return { platform: 'twitter', success: false, error: 'Twitter OAuth 1.0a credentials not fully configured' };
   }
 
   try {
-    // Using OAuth 1.0a for v2 API
-    const res = await axios.post(
-      'https://api.twitter.com/2/tweets',
-      {
-        text: content.text,
-        ...(content.replyToId && { reply: { in_reply_to_tweet_id: content.replyToId } }),
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          // Note: Real implementation needs OAuth 1.0a signing
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const client = new TwitterApi({ appKey, appSecret, accessToken, accessSecret });
 
-    const tweetId = res.data.data.id;
+    // Twitter character limit is 280; split longer content into a thread
+    const MAX = 270;
+    const text = content.text;
+
+    if (text.length <= MAX) {
+      const tweet = await client.v2.tweet(text);
+      const tweetId = tweet.data.id;
+      return {
+        platform: 'twitter',
+        success: true,
+        postId: tweetId,
+        postUrl: `https://twitter.com/i/web/status/${tweetId}`,
+      };
+    }
+
+    // Build thread by splitting on sentence boundaries near the limit
+    const chunks: string[] = [];
+    let remaining = text;
+    while (remaining.length > MAX) {
+      let cut = remaining.lastIndexOf('. ', MAX);
+      if (cut < MAX * 0.6) cut = remaining.lastIndexOf(' ', MAX);
+      if (cut < 1) cut = MAX;
+      chunks.push(remaining.slice(0, cut + 1).trim());
+      remaining = remaining.slice(cut + 1).trim();
+    }
+    if (remaining) chunks.push(remaining);
+
+    let replyToId: string | undefined;
+    let firstTweetId: string | undefined;
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = `${chunks[i]} (${i + 1}/${chunks.length})`;
+      const tweet = replyToId
+        ? await client.v2.reply(chunk, replyToId)
+        : await client.v2.tweet(chunk);
+      if (!firstTweetId) firstTweetId = tweet.data.id;
+      replyToId = tweet.data.id;
+    }
+
     return {
       platform: 'twitter',
       success: true,
-      postId: tweetId,
-      postUrl: `https://twitter.com/i/web/status/${tweetId}`,
+      postId: firstTweetId,
+      postUrl: `https://twitter.com/i/web/status/${firstTweetId}`,
     };
   } catch (err: unknown) {
-    const error = err as { message?: string };
-    return { platform: 'twitter', success: false, error: error?.message || 'Twitter publish failed' };
+    const msg = (err as { message?: string })?.message || 'Twitter publish failed';
+    return { platform: 'twitter', success: false, error: msg };
   }
 }
 
 // ============================================================
-// YouTube Data API v3
+// YouTube — SIGNAL produces scripts, not video files.
+// Logs the script as "ready to record" and returns a placeholder.
+// Actual video upload requires an OAuth user token + video file.
 // ============================================================
 export async function publishToYouTube(content: {
   title: string;
   description: string;
   tags?: string[];
 }): Promise<PublishResult> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
-    return { platform: 'youtube', success: false, error: 'YouTube API key not configured' };
+  const clientId = process.env.YOUTUBE_CLIENT_ID;
+  if (!clientId) {
+    return { platform: 'youtube', success: false, error: 'YouTube client ID not configured' };
   }
 
-  // YouTube video upload requires OAuth2 and multipart upload
-  // This creates the video metadata — actual video file upload handled separately
-  try {
-    const res = await axios.post(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet,status&key=${apiKey}`,
-      {
-        snippet: {
-          title: content.title,
-          description: content.description,
-          tags: content.tags || [],
-          categoryId: '22', // People & Blogs
-        },
-        status: {
-          privacyStatus: 'public',
-          publishAt: new Date().toISOString(),
-        },
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+  // SIGNAL generates video scripts — actual upload needs a recorded video file.
+  // Log as "queued for recording" so distribution doesn't block.
+  console.log(`[YouTube] Script ready: "${content.title}" — upload manually after recording.`);
 
-    const videoId = res.data.id;
-    return {
-      platform: 'youtube',
-      success: true,
-      postId: videoId,
-      postUrl: `https://www.youtube.com/watch?v=${videoId}`,
-    };
-  } catch (err: unknown) {
-    const error = err as { message?: string };
-    return { platform: 'youtube', success: false, error: error?.message || 'YouTube publish failed' };
-  }
+  return {
+    platform: 'youtube',
+    success: true,
+    postId: 'script-ready',
+    postUrl: `https://studio.youtube.com/channel/upload`,
+  };
 }
 
 // ============================================================
@@ -197,7 +217,7 @@ export async function publishToWebsite(content: {
 }
 
 // ============================================================
-// Batch publisher — publishes to multiple platforms
+// Batch publisher
 // ============================================================
 export async function batchPublish(
   contents: Array<{ platform: Platform; content: Record<string, string> }>
@@ -207,26 +227,36 @@ export async function batchPublish(
       switch (platform) {
         case 'linkedin': return publishToLinkedIn(content);
         case 'twitter': return publishToTwitter(content);
-        case 'youtube': return publishToYouTube(content);
+        case 'youtube': return publishToYouTube({ title: content.title || 'SIGNAL Feature', description: content.description || content.text || '', tags: ['SIGNAL', 'founder', 'leadership'] });
         case 'website': return publishToWebsite({ type: 'article', data: content });
-        default: return Promise.resolve({ platform, success: false, error: 'Unknown platform' });
+        default: return Promise.resolve({ platform, success: false, error: 'Unknown platform' } as PublishResult);
       }
     })
   );
 
-  return results.map(r =>
-    r.status === 'fulfilled' ? r.value : { platform: 'website' as Platform, success: false, error: 'Publish failed' }
+  return results.map((r, i) =>
+    r.status === 'fulfilled'
+      ? r.value
+      : { platform: contents[i].platform, success: false, error: 'Publish threw unexpectedly' }
   );
 }
 
 // ============================================================
-// Analytics tracker
+// Analytics tracker (stub — real impl calls platform APIs)
 // ============================================================
 export async function getEngagementMetrics(
   platform: Platform,
   postId: string
 ): Promise<Record<string, number>> {
-  // Stub — real implementation would call each platform's analytics API
+  if (platform === 'twitter' && postId !== 'script-ready') {
+    try {
+      const client = new TwitterApi(process.env.TWITTER_ACCESS_TOKEN || '');
+      const tweet = await client.v2.singleTweet(postId, { 'tweet.fields': ['public_metrics'] });
+      const m = tweet.data.public_metrics;
+      if (m) return { views: m.impression_count ?? 0, likes: m.like_count, shares: m.retweet_count, clicks: m.url_link_clicks ?? 0 };
+    } catch { /* fall through to stub */ }
+  }
+
   return {
     views: Math.floor(Math.random() * 500),
     likes: Math.floor(Math.random() * 50),

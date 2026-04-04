@@ -25,7 +25,8 @@ const TIERS = [
 ];
 
 export default function DealsPage() {
-  const { data: deals = [] } = useSWR<Deal[]>('/api/signal/status?view=deals', fetcher, { refreshInterval: 15000 });
+  const { data: raw } = useSWR('/api/signal/status?view=deals', fetcher, { refreshInterval: 15000 });
+  const deals: Deal[] = Array.isArray(raw) ? raw : [];
 
   const authorityCount = deals.filter(d => d.score >= 90).length;
   const growthCount = deals.filter(d => d.score >= 70 && d.score < 90).length;

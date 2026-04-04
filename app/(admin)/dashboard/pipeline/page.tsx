@@ -7,14 +7,20 @@ import { PipelineProgress } from '@/components/admin/PipelineProgress';
 import { GateApprovalModal } from '@/components/admin/GateApprovalModal';
 import { SectorBadge } from '@/components/admin/SectorBadge';
 import { MessageStream } from '@/components/admin/MessageStream';
+import { InterviewPanel } from '@/components/admin/InterviewPanel';
 import type { PipelineState, GateNumber, GateDecision } from '@signal/lib/types';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function PipelinePage() {
-  const { data: pipelines = [], mutate } = useSWR<PipelineState[]>('/api/signal/status?view=active', fetcher, { refreshInterval: 5000 });
+  const { data: rawPipelines, mutate } = useSWR('/api/signal/status?view=all', fetcher, { refreshInterval: 5000 });
+  const allPipelines: PipelineState[] = Array.isArray(rawPipelines) ? rawPipelines : [];
+  const pipelines = allPipelines.filter(p => !['rejected', 'complete'].includes(p.currentStage));
+  const archivedPipelines = allPipelines.filter(p => ['rejected', 'complete'].includes(p.currentStage));
   const [selected, setSelected] = useState<PipelineState | null>(null);
   const [gateModal, setGateModal] = useState<{ taskId: string; gate: GateNumber; entityName: string } | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(true);
 
   const handleDecision = async (taskId: string, gate: GateNumber, decision: GateDecision, notes?: string) => {
     await fetch('/api/signal/approve', {
@@ -23,6 +29,18 @@ export default function PipelinePage() {
       body: JSON.stringify({ taskId, gate, decision, notes }),
     });
     mutate();
+  };
+
+  const handleAction = async (taskId: string, action: 'stop' | 'restart') => {
+    setActionLoading(`${taskId}-${action}`);
+    await fetch('/api/signal/pipeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, action }),
+    });
+    if (selected?.taskId === taskId) setSelected(null);
+    mutate();
+    setActionLoading(null);
   };
 
   return (
@@ -36,16 +54,16 @@ export default function PipelinePage() {
           PIPELINE
         </motion.h1>
         <p className="text-zinc-500 font-mono text-sm mt-1">
-          {pipelines.length} active pipeline{pipelines.length !== 1 ? 's' : ''}
+          {pipelines.length} active · {archivedPipelines.length} archived
         </p>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
         {/* Pipeline List */}
         <div className="col-span-2 space-y-3">
-          {pipelines.length === 0 && (
+          {pipelines.length === 0 && archivedPipelines.length === 0 && (
             <div className="text-zinc-700 text-sm font-mono text-center py-16 border border-zinc-800 rounded-lg">
-              No active pipelines. Start one from the Intake tab.
+              No pipelines yet. Start one from the Intake tab.
             </div>
           )}
 
@@ -85,6 +103,20 @@ export default function PipelinePage() {
                         Review Gate →
                       </button>
                     )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleAction(p.taskId, 'restart'); }}
+                      disabled={actionLoading === `${p.taskId}-restart`}
+                      className="border border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-zinc-200 text-xs font-mono px-2 py-1 rounded transition-colors disabled:opacity-40"
+                    >
+                      {actionLoading === `${p.taskId}-restart` ? '↺ ...' : '↺ Restart'}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleAction(p.taskId, 'stop'); }}
+                      disabled={actionLoading === `${p.taskId}-stop`}
+                      className="border border-red-900 hover:border-red-700 text-red-600 hover:text-red-400 text-xs font-mono px-2 py-1 rounded transition-colors disabled:opacity-40"
+                    >
+                      {actionLoading === `${p.taskId}-stop` ? '■ ...' : '■ Stop'}
+                    </button>
                   </div>
                 </div>
 
@@ -105,6 +137,56 @@ export default function PipelinePage() {
               </motion.div>
             );
           })}
+
+          {/* Archived Pipelines */}
+          {archivedPipelines.length > 0 && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowArchived(v => !v)}
+                className="text-zinc-600 hover:text-zinc-400 font-mono text-xs uppercase tracking-wider flex items-center gap-2 mb-3"
+              >
+                {showArchived ? '▾' : '▸'} Archived ({archivedPipelines.length})
+              </button>
+              {showArchived && archivedPipelines.map((p, i) => (
+                <motion.div
+                  key={p.taskId}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.03 }}
+                  className={`bg-zinc-950 border rounded-lg p-4 cursor-pointer transition-colors mb-3 ${
+                    selected?.taskId === p.taskId ? 'border-zinc-600' : 'border-zinc-900 hover:border-zinc-800'
+                  }`}
+                  onClick={() => setSelected(p)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-zinc-500 font-mono font-medium text-sm">{p.entityName}</h3>
+                      <p className="text-zinc-700 text-xs font-mono mt-0.5">ID: {p.taskId.slice(0, 8)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                        p.currentStage === 'complete'
+                          ? 'border-green-900 text-green-600'
+                          : 'border-zinc-800 text-zinc-600'
+                      }`}>
+                        {p.currentStage.toUpperCase()}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAction(p.taskId, 'restart'); }}
+                        disabled={actionLoading === `${p.taskId}-restart`}
+                        className="border border-zinc-800 hover:border-zinc-600 text-zinc-600 hover:text-zinc-300 text-xs font-mono px-2 py-1 rounded transition-colors disabled:opacity-40"
+                      >
+                        {actionLoading === `${p.taskId}-restart` ? '↺ ...' : '↺ Restart'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-zinc-700 text-xs font-mono mt-2">
+                    {new Date(p.createdAt).toLocaleDateString()} · Gate {Object.keys(p.gateStatus).length} of 4 completed
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Detail Panel */}
@@ -132,6 +214,13 @@ export default function PipelinePage() {
                   </div>
                 </dl>
               </div>
+
+              {selected.currentStage === 'interview-engine' && (
+                <InterviewPanel
+                  taskId={selected.taskId}
+                  onComplete={() => { setSelected(null); mutate(); }}
+                />
+              )}
 
               <div>
                 <h2 className="text-zinc-400 font-mono text-xs uppercase tracking-wider mb-2">Message Trace</h2>

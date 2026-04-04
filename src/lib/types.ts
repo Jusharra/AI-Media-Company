@@ -183,6 +183,7 @@ export interface IntakeRequest {
   source: EntitySource;
   notes?: string;
   hook?: string;
+  email?: string;
 }
 
 export interface ApproveRequest {

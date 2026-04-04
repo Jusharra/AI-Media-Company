@@ -11,11 +11,12 @@ export default function ContentPage() {
   const [activeTab, setActiveTab] = useState<'articles' | 'media'>('articles');
   const [statusFilter, setStatusFilter] = useState('draft');
 
-  const { data: articles = [], mutate: mutateArticles } = useSWR(
+  const { data: rawArticles, mutate: mutateArticles } = useSWR(
     `/api/cms/articles?status=${statusFilter}`,
     fetcher,
     { refreshInterval: 8000 }
   );
+  const articles = Array.isArray(rawArticles) ? rawArticles : [];
 
   const handleApprove = async (id: string) => {
     await fetch('/api/cms/articles', {

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
+import { sendInterviewQuestions } from '../../lib/mail';
 import { INTERVIEW_MODE_A_SYSTEM, INTERVIEW_MODE_B_SYSTEM, MODE_A_QUESTION_PROMPT, MODE_B_PARSE_PROMPT } from './prompts';
 import { getSectorContext } from '../../lib/sector-rules';
 import type { Industry } from '../../lib/types';
@@ -51,8 +52,18 @@ export async function runInterviewModeA(
 
     db.prepare(`UPDATE tasks SET status = 'awaiting_validation', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(taskId);
 
-    // In a real system, email the question set to the founder via SendGrid
-    console.log(`[InterviewEngine Mode A] Question set generated for entity ${entityId}`);
+    // Email question set to founder if an email address is available
+    const founderEmail = entityData.email as string | undefined;
+    if (founderEmail) {
+      await sendInterviewQuestions({
+        toEmail: founderEmail,
+        founderName: (entityData.name as string) || 'Founder',
+        questionSet,
+      });
+      console.log(`[InterviewEngine Mode A] Questions emailed to ${founderEmail}`);
+    } else {
+      console.log(`[InterviewEngine Mode A] Question set generated for entity ${entityId} — no email on file`);
+    }
 
     // Send handoff to backgrounder
     sendMessage({

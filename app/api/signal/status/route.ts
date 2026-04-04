@@ -14,6 +14,18 @@ export async function GET(request: Request) {
       return NextResponse.json(getAllPipelines());
     }
 
+    if (view === 'distribution') {
+      // Distribution logs come from the distributor agent when it's running.
+      // Return empty array until the pipeline produces distributions.
+      return NextResponse.json([]);
+    }
+
+    if (view === 'deals') {
+      // Deal queue is populated by the lead agent after Gate 4 approval.
+      // Return empty array until pipelines complete.
+      return NextResponse.json([]);
+    }
+
     return NextResponse.json(getPipelineStatus());
   } catch (err) {
     console.error('Status error:', err);

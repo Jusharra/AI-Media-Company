@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
 import { batchPublish, getEngagementMetrics } from '../../lib/platform-apis';
+import { sendDistributionReport } from '../../lib/mail';
 import type { Platform } from '../../lib/types';
 
 export async function runDistribution(
@@ -84,6 +85,15 @@ export async function runDistribution(
         summary: `Distribution complete. Published to: ${Object.keys(distributionUrls).join(', ')}`,
       },
     });
+
+    // Email founder distribution report if email on file
+    const scoutDb = getDb('signal-scout');
+    const entity = scoutDb.prepare('SELECT name, email FROM entities WHERE id = ?').get(entityId) as { name: string; email?: string } | undefined;
+    if (entity?.email && Object.keys(distributionUrls).length > 0) {
+      sendDistributionReport({ toEmail: entity.email, entityName: entity.name, distributionUrls }).catch(err =>
+        console.error('[Distributor] Failed to send distribution report email:', err)
+      );
+    }
 
     // Schedule metric tracking (in production, use a job queue)
     setTimeout(() => trackMetrics(distTaskId, distributionUrls), 86400000); // 24h
