@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
+import { extractJson } from '../../lib/json-utils';
 import { BACKGROUNDER_SYSTEM, BACKGROUNDER_SYNTHESIS_PROMPT } from './prompts';
 import { getSectorContext } from '../../lib/sector-rules';
 import type { Industry } from '../../lib/types';
@@ -21,6 +22,7 @@ export async function runBackgrounder(
   db.prepare(`
     INSERT INTO tasks (id, entity_id, agent, status, created_at, updated_at)
     VALUES (?, ?, 'backgrounder', 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
   `).run(taskId, entityId);
 
   try {
@@ -60,10 +62,7 @@ export async function runBackgrounder(
 
     const response = await stream.finalMessage();
     const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Backgrounder: failed to parse JSON');
-
-    const backgrounder = JSON.parse(jsonMatch[0]);
+    const backgrounder = extractJson(rawText);
     const validationScore = backgrounder.validation_score || 70;
 
     // Write backgrounder to db

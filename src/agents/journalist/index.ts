@@ -40,6 +40,7 @@ export async function runJournalist(
   db.prepare(`
     INSERT INTO tasks (id, entity_id, agent, status, created_at, updated_at)
     VALUES (?, ?, 'journalist', 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
   `).run(taskId, entityId);
 
   try {

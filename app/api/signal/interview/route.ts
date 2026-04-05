@@ -105,6 +105,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'mode must be A or B' }, { status: 400 });
   } catch (err) {
     console.error('Interview POST error:', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    const msg = String(err);
+    // Surface Anthropic billing errors directly so the client can display them helpfully
+    if (msg.includes('credit balance') || msg.includes('invalid_request_error')) {
+      try {
+        const json = msg.match(/\{[\s\S]*\}/)?.[0];
+        const parsed = json ? JSON.parse(json) : null;
+        const detail = parsed?.error?.message ?? 'Anthropic API credits exhausted';
+        return NextResponse.json({ error: detail }, { status: 402 });
+      } catch { /* fall through */ }
+    }
+    return NextResponse.json({ error: msg.replace(/^Error:\s*/i, '') }, { status: 500 });
   }
 }

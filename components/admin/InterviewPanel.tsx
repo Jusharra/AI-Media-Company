@@ -79,8 +79,26 @@ export function InterviewPanel({ taskId, onComplete }: InterviewPanelProps) {
       </p>
 
       {error && (
-        <div className="bg-red-950 border border-red-800 text-red-400 rounded px-3 py-2 text-xs font-mono">
-          {error}
+        <div className="bg-red-950 border border-red-800 text-red-400 rounded px-3 py-2 text-xs font-mono space-y-1">
+          {error.includes('credit balance') || error.includes('credits') ? (
+            <>
+              <p className="font-medium">Anthropic API credits exhausted.</p>
+              <p className="text-red-500">
+                Add credits at{' '}
+                <a
+                  href="https://console.anthropic.com/settings/billing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-red-300"
+                >
+                  console.anthropic.com → Billing
+                </a>
+                , then try again.
+              </p>
+            </>
+          ) : (
+            <p>{error.replace(/^Error:\s*/i, '')}</p>
+          )}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
 import { sendInterviewQuestions } from '../../lib/mail';
+import { extractJson } from '../../lib/json-utils';
 import { INTERVIEW_MODE_A_SYSTEM, INTERVIEW_MODE_B_SYSTEM, MODE_A_QUESTION_PROMPT, MODE_B_PARSE_PROMPT } from './prompts';
 import { getSectorContext } from '../../lib/sector-rules';
 import type { Industry } from '../../lib/types';
@@ -20,6 +21,7 @@ export async function runInterviewModeA(
   db.prepare(`
     INSERT INTO tasks (id, entity_id, agent, status, created_at, updated_at)
     VALUES (?, ?, 'interview-engine', 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
   `).run(taskId, entityId);
 
   try {
@@ -39,10 +41,7 @@ export async function runInterviewModeA(
 
     const response = await stream.finalMessage();
     const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Interview Engine Mode A: failed to parse JSON');
-
-    const questionSet = JSON.parse(jsonMatch[0]);
+    const questionSet = extractJson(rawText);
 
     // Store the question set as transcript
     db.prepare(`
@@ -99,6 +98,7 @@ export async function runInterviewModeB(
   db.prepare(`
     INSERT INTO tasks (id, entity_id, agent, status, created_at, updated_at)
     VALUES (?, ?, 'interview-engine', 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
   `).run(taskId, entityId);
 
   try {
@@ -115,10 +115,7 @@ export async function runInterviewModeB(
 
     const response = await stream.finalMessage();
     const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Interview Engine Mode B: failed to parse JSON');
-
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = extractJson(rawText);
 
     db.prepare(`
       INSERT INTO outputs (id, task_id, entity_id, doc_type, content, version, status, created_at)

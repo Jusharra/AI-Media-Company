@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
+import { extractJson } from '../../lib/json-utils';
 import { SIGNAL_SCOUT_SYSTEM, ENTITY_RESEARCH_PROMPT } from './prompts';
 import type { IntakeRequest, Industry } from '../../lib/types';
 
@@ -18,6 +19,7 @@ export async function runSignalScout(
   db.prepare(`
     INSERT INTO tasks (id, entity_id, agent, status, created_at, updated_at)
     VALUES (?, ?, 'signal-scout', 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP
   `).run(taskId, entityId);
 
   try {
@@ -40,10 +42,7 @@ export async function runSignalScout(
       .join('');
 
     // Parse JSON from response
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Failed to parse Signal Scout JSON output');
-
-    const result = JSON.parse(jsonMatch[0]);
+    const result = extractJson(rawText);
 
     // Write entity to db
     db.prepare(`

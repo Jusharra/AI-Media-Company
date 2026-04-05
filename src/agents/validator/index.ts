@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../lib/db';
 import { sendMessage } from '../../lib/message-tool';
+import { extractJson } from '../../lib/json-utils';
 import { VALIDATOR_SYSTEM, VALIDATION_PROMPT } from './prompts';
 import { calculateValidationScore } from '../../lib/scoring';
 import type { AgentName } from '../../lib/types';
@@ -24,13 +25,12 @@ async function validateSingleContent(
 
   const response = await stream.finalMessage();
   const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-
-  if (!jsonMatch) {
+  let result: Record<string, unknown>;
+  try {
+    result = extractJson(rawText);
+  } catch {
     return { score: 60, tier: 'medium', passed: true, gaps: [], revisionNotes: [] };
   }
-
-  const result = JSON.parse(jsonMatch[0]);
   const scoreResult = calculateValidationScore({
     accuracy: result.scores?.accuracy || 15,
     completeness: result.scores?.completeness || 15,

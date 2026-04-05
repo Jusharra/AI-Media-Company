@@ -167,10 +167,16 @@ export function getPipelineStatus(): PipelineStatusResponse {
     ORDER BY mi.created_at ASC
   `).all() as Array<{ task_id: string; entity_name: string; payload: string }>;
 
-  const gates = pendingGates.map(r => {
+  const seen = new Set<string>();
+  const gates = pendingGates.reduce<Array<{ taskId: string; gate: GateNumber; entityName: string }>>((acc, r) => {
     const p = JSON.parse(r.payload);
-    return { taskId: r.task_id, gate: p.gate as GateNumber, entityName: r.entity_name };
-  });
+    const key = `${r.task_id}-${p.gate}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      acc.push({ taskId: r.task_id, gate: p.gate as GateNumber, entityName: r.entity_name });
+    }
+    return acc;
+  }, []);
 
   const highConfidence = (db.prepare(`
     SELECT COUNT(DISTINCT JSON_EXTRACT(payload, '$.taskId')) as c FROM messages_in
