@@ -22,12 +22,12 @@ async function generateContent(
   const stream = await client.messages.stream({
     model: 'claude-opus-4-6',
     max_tokens: maxTokens,
-    thinking: { type: 'adaptive' },
+    ...({ thinking: { type: 'enabled', budget_tokens: 5000 } } as any),
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });
   const response = await stream.finalMessage();
-  return response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  return (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
 }
 
 export async function runJournalist(

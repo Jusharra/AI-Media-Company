@@ -12,16 +12,32 @@ export interface PublishResult {
 
 // ============================================================
 // LinkedIn API
-// Requires a user access token (member or org admin).
-// Get one from: https://www.linkedin.com/developers/tools/oauth/token-generator
-// Add to .env.local as LINKEDIN_ACCESS_TOKEN=
+// Token loaded from .env.local (LINKEDIN_ACCESS_TOKEN) or
+// from the lead DB after completing the OAuth flow at
+// /api/auth/linkedin → /api/auth/linkedin/callback
 // ============================================================
 let _linkedInToken: string | null = null;
 
 async function getLinkedInToken(): Promise<string | null> {
   if (_linkedInToken) return _linkedInToken;
-  const token = process.env.LINKEDIN_ACCESS_TOKEN;
-  if (token) { _linkedInToken = token; return token; }
+
+  // Prefer .env.local override
+  const envToken = process.env.LINKEDIN_ACCESS_TOKEN;
+  if (envToken) { _linkedInToken = envToken; return envToken; }
+
+  // Fall back to token saved by the OAuth callback
+  try {
+    const { getLeadDb } = await import('./db');
+    const db = getLeadDb();
+    const row = db.prepare(
+      "SELECT access_token, expires_at FROM platform_tokens WHERE platform = 'linkedin'"
+    ).get() as { access_token: string; expires_at: string } | undefined;
+    if (row) {
+      const expired = row.expires_at && new Date(row.expires_at) < new Date();
+      if (!expired) { _linkedInToken = row.access_token; return row.access_token; }
+    }
+  } catch { /* DB may not exist yet */ }
+
   return null;
 }
 

@@ -10,7 +10,8 @@ export type AgentName =
   | 'media-producer'
   | 'validator'
   | 'distributor'
-  | 'lead';
+  | 'lead'
+  | 'complete';
 
 export type MessageType =
   | 'handoff'
@@ -184,6 +185,8 @@ export interface IntakeRequest {
   notes?: string;
   hook?: string;
   email?: string;
+  website?: string;
+  linkedinUrl?: string;
 }
 
 export interface ApproveRequest {

@@ -31,7 +31,7 @@ export async function runInterviewModeA(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 4096,
-      thinking: { type: 'adaptive' },
+      ...({ thinking: { type: 'enabled', budget_tokens: 4000 } } as any),
       system: INTERVIEW_MODE_A_SYSTEM,
       messages: [{
         role: 'user',
@@ -40,8 +40,8 @@ export async function runInterviewModeA(
     });
 
     const response = await stream.finalMessage();
-    const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const questionSet = extractJson(rawText);
+    const rawText = (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
+    const questionSet = extractJson<{ intro_message: string; sections: Array<{ section_name: string; section_intro?: string; questions: Array<{ id: string; question: string; expected_length?: string }> }>; closing_message: string; response_deadline: string }>(rawText);
 
     // Store the question set as transcript
     db.prepare(`
@@ -105,7 +105,7 @@ export async function runInterviewModeB(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 8192,
-      thinking: { type: 'adaptive' },
+      ...({ thinking: { type: 'enabled', budget_tokens: 8000 } } as any),
       system: INTERVIEW_MODE_B_SYSTEM,
       messages: [{
         role: 'user',
@@ -114,8 +114,8 @@ export async function runInterviewModeB(
     });
 
     const response = await stream.finalMessage();
-    const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const parsed = extractJson(rawText);
+    const rawText = (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
+    const parsed = extractJson<{ key_quotes?: string[]; insight_tags?: string[]; [key: string]: unknown }>(rawText);
 
     db.prepare(`
       INSERT INTO outputs (id, task_id, entity_id, doc_type, content, version, status, created_at)

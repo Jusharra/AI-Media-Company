@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    db.prepare('UPDATE admin_users SET last_login = datetime("now") WHERE id = ?').run(user.id);
+    db.prepare("UPDATE admin_users SET last_login = datetime('now') WHERE id = ?").run(user.id);
 
     // Create session
     const sessionId = uuidv4();

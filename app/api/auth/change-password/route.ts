@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
     const db = getLeadDb();
     const session = db.prepare(
-      'SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime("now")'
+      "SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')"
     ).get(sessionToken) as { user_id: string } | undefined;
 
     if (!session) {

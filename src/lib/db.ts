@@ -136,6 +136,12 @@ export function getDb(agentName: string): Database.Database {
 
   db.exec(BASE_SCHEMA);
 
+  // Additive migrations — safe to run repeatedly (errors are swallowed)
+  const entityMigrations = ['email TEXT', 'notes TEXT', 'hook TEXT'];
+  for (const col of entityMigrations) {
+    try { db.exec(`ALTER TABLE entities ADD COLUMN ${col}`); } catch { /* column already exists */ }
+  }
+
   if (agentName === 'lead') {
     db.exec(LEAD_SCHEMA);
   }

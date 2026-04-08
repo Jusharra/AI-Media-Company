@@ -13,7 +13,7 @@ const STAGES = [
 
 interface PipelineProgressProps {
   currentStage: string;
-  gateStatus: Record<string, string>;
+  gateStatus: Record<string, string | null>;
   entityName: string;
 }
 

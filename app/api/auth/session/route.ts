@@ -4,7 +4,7 @@ import { getLeadDb } from '@signal/lib/db';
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionId = cookieStore.get('signal_session')?.value;
 
     if (!sessionId) {

@@ -46,7 +46,7 @@ export async function runBackgrounder(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 8192,
-      thinking: { type: 'adaptive' },
+      ...({ thinking: { type: 'enabled', budget_tokens: 8000 } } as any),
       system: BACKGROUNDER_SYSTEM,
       messages: [{
         role: 'user',
@@ -61,8 +61,8 @@ export async function runBackgrounder(
     });
 
     const response = await stream.finalMessage();
-    const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
-    const backgrounder = extractJson(rawText);
+    const rawText = (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
+    const backgrounder = extractJson<{ validation_score?: number; narrative_angles?: Array<{ hook?: string }>; [key: string]: unknown }>(rawText);
     const validationScore = backgrounder.validation_score || 70;
 
     // Write backgrounder to db

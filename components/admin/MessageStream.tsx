@@ -61,7 +61,9 @@ export function MessageStream({ taskId }: { taskId?: string }) {
                 {(() => {
                   try {
                     const p = JSON.parse(msg.payload);
-                    return p.summary || p.gate ? `Gate ${p.gate}` : JSON.stringify(p).slice(0, 60);
+                    if (p.summary) return p.summary;
+                    if (p.gate !== undefined) return `Gate ${p.gate}`;
+                    return JSON.stringify(p).slice(0, 60);
                   } catch {
                     return msg.payload?.slice(0, 60);
                   }

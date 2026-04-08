@@ -18,13 +18,13 @@ async function validateSingleContent(
   const stream = await client.messages.stream({
     model: 'claude-opus-4-6',
     max_tokens: 4096,
-    thinking: { type: 'adaptive' },
+    ...({ thinking: { type: 'enabled', budget_tokens: 4000 } } as any),
     system: VALIDATOR_SYSTEM,
     messages: [{ role: 'user', content: VALIDATION_PROMPT(content, backgrounder, docType) }],
   });
 
   const response = await stream.finalMessage();
-  const rawText = response.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const rawText = (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
   let result: Record<string, unknown>;
   try {
     result = extractJson(rawText);

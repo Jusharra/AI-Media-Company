@@ -5,7 +5,7 @@ import { runSignalScout } from '../signal-scout';
 import { dispatchToContentAgents } from '../backgrounder';
 import { runDistribution } from '../distributor';
 import type {
-  GateNumber, GateDecision, IntakeRequest,
+  AgentName, GateNumber, GateDecision, IntakeRequest,
   PipelineStatusResponse, PipelineState
 } from '../../lib/types';
 
@@ -209,7 +209,7 @@ export function getActivePipelines(): PipelineState[] {
     taskId: r.task_id as string,
     entityId: r.entity_id as string,
     entityName: r.entity_name as string,
-    currentStage: r.current_stage as string,
+    currentStage: r.current_stage as AgentName,
     gateStatus: JSON.parse(r.gate_status as string || '{}'),
     validationScores: JSON.parse(r.validation_scores as string || '{}'),
     contentIds: JSON.parse(r.content_ids as string || '[]'),
@@ -227,7 +227,7 @@ export function getAllPipelines(): PipelineState[] {
     taskId: r.task_id as string,
     entityId: r.entity_id as string,
     entityName: r.entity_name as string,
-    currentStage: r.current_stage as string,
+    currentStage: r.current_stage as AgentName,
     gateStatus: JSON.parse(r.gate_status as string || '{}'),
     validationScores: JSON.parse(r.validation_scores as string || '{}'),
     contentIds: JSON.parse(r.content_ids as string || '[]'),
