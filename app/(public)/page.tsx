@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 async function getFeaturedFounders() {
   try {
-    const res = await fetch(`${process.env.ADMIN_SITE_URL || 'http://localhost:3000'}/api/cms/founders?status=featured`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/cms/founders?status=featured`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];
@@ -19,7 +19,7 @@ async function getFeaturedFounders() {
 
 async function getRecentArticles() {
   try {
-    const res = await fetch(`${process.env.ADMIN_SITE_URL || 'http://localhost:3000'}/api/cms/articles?status=approved`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/cms/articles?status=approved`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

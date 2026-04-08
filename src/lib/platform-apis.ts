@@ -205,7 +205,7 @@ export async function publishToWebsite(content: {
   type: 'article' | 'founder' | 'podcast';
   data: Record<string, unknown>;
 }): Promise<PublishResult> {
-  const siteUrl = process.env.PUBLIC_SITE_URL || 'http://localhost:3000';
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   try {
     const endpoint = content.type === 'article'

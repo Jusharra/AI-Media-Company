@@ -8,7 +8,7 @@ export const metadata = {
   description: 'SIGNAL covers independent operators, E&P founders, and energy transition executives navigating the dual forces reshaping the energy industry.',
 };
 
-const ADMIN = process.env.ADMIN_SITE_URL || 'http://localhost:3000';
+const ADMIN = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 async function getSectorData() {
   const [foundersRes, articlesRes] = await Promise.all([

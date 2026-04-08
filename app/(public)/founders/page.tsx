@@ -7,7 +7,7 @@ async function getFounders(industry?: string) {
   try {
     const params = new URLSearchParams({ status: 'featured' });
     if (industry) params.set('industry', industry);
-    const res = await fetch(`${process.env.ADMIN_SITE_URL || 'http://localhost:3000'}/api/cms/founders?${params}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/cms/founders?${params}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

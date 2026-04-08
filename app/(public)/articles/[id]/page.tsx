@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN = process.env.ADMIN_SITE_URL || 'http://localhost:3000';
+const ADMIN = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 const DOC_LABELS: Record<string, string> = {
   'feature-article': 'Feature Article',

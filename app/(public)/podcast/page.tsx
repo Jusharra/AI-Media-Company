@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Podcast — The SIGNAL Sessions' };
 
-const ADMIN = process.env.ADMIN_SITE_URL || 'http://localhost:3000';
+const ADMIN = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 async function getPodcastEpisodes() {
   try {

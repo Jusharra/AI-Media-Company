@@ -8,7 +8,7 @@ export const metadata = {
   description: 'SIGNAL covers the clinicians-turned-operators, health system executives, and digital health founders building the next infrastructure layer of healthcare.',
 };
 
-const ADMIN = process.env.ADMIN_SITE_URL || 'http://localhost:3000';
+const ADMIN = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
 async function getSectorData() {
   const [foundersRes, articlesRes] = await Promise.all([
