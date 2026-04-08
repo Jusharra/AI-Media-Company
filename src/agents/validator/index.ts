@@ -25,27 +25,41 @@ async function validateSingleContent(
 
   const response = await stream.finalMessage();
   const rawText = (response.content as Array<{ type: string; text?: string }>).filter(b => b.type === 'text').map(b => b.text ?? '').join('');
-  let result: Record<string, unknown>;
+  type ValidationResult = {
+    scores?: {
+      accuracy?: number;
+      completeness?: number;
+      tone_quality?: number;
+      no_hallucinations?: number;
+      brand_alignment?: number;
+      structural?: number;
+    };
+    gaps?: string[];
+    revision_notes?: string[];
+  };
+
+  let result: ValidationResult;
   try {
-    result = extractJson(rawText);
+    result = extractJson<ValidationResult>(rawText);
   } catch {
     return { score: 60, tier: 'medium', passed: true, gaps: [], revisionNotes: [] };
   }
+  const scores = result.scores ?? {};
   const scoreResult = calculateValidationScore({
-    accuracy: result.scores?.accuracy || 15,
-    completeness: result.scores?.completeness || 15,
-    toneQuality: result.scores?.tone_quality || 12,
-    noHallucinations: result.scores?.no_hallucinations || 15,
-    brandAlignment: result.scores?.brand_alignment || 7,
-    structural: result.scores?.structural || 7,
+    accuracy: scores.accuracy ?? 15,
+    completeness: scores.completeness ?? 15,
+    toneQuality: scores.tone_quality ?? 12,
+    noHallucinations: scores.no_hallucinations ?? 15,
+    brandAlignment: scores.brand_alignment ?? 7,
+    structural: scores.structural ?? 7,
   });
 
   return {
     score: scoreResult.score,
     tier: scoreResult.tier,
     passed: scoreResult.passed,
-    gaps: result.gaps || scoreResult.gaps,
-    revisionNotes: result.revision_notes || [],
+    gaps: result.gaps ?? scoreResult.gaps,
+    revisionNotes: result.revision_notes ?? [],
   };
 }
 
