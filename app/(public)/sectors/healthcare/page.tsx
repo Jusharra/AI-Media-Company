@@ -2,7 +2,7 @@ import { SectorHero } from '@/components/public/SectorHero';
 import { FounderCard } from '@/components/public/FounderCard';
 import { ArticleCard } from '@/components/public/ArticleCard';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Healthcare — SIGNAL',
   description: 'SIGNAL covers the clinicians-turned-operators, health system executives, and digital health founders building the next infrastructure layer of healthcare.',

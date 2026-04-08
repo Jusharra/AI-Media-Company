@@ -3,7 +3,7 @@ import { FounderCard } from '@/components/public/FounderCard';
 import { ArticleCard } from '@/components/public/ArticleCard';
 
 // ISR — revalidate every 60 seconds
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 async function getFeaturedFounders() {
   try {

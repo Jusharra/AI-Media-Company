@@ -1,6 +1,6 @@
 import { FounderCard } from '@/components/public/FounderCard';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Founder Directory' };
 
 async function getFounders(industry?: string) {

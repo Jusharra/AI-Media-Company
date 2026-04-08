@@ -2,7 +2,7 @@ import { SectorHero } from '@/components/public/SectorHero';
 import { FounderCard } from '@/components/public/FounderCard';
 import { ArticleCard } from '@/components/public/ArticleCard';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Construction — SIGNAL',
   description: 'SIGNAL covers general contractors turned tech founders, construction software entrepreneurs, and modular building companies building better ways to build.',

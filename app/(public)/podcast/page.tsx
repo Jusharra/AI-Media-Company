@@ -1,5 +1,5 @@
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Podcast — The SIGNAL Sessions' };
 
 const ADMIN = process.env.ADMIN_SITE_URL || 'http://localhost:3000';

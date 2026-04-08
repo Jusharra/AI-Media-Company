@@ -2,7 +2,7 @@ import { SectorHero } from '@/components/public/SectorHero';
 import { FounderCard } from '@/components/public/FounderCard';
 import { ArticleCard } from '@/components/public/ArticleCard';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Oil & Gas / Energy — SIGNAL',
   description: 'SIGNAL covers independent operators, E&P founders, and energy transition executives navigating the dual forces reshaping the energy industry.',
