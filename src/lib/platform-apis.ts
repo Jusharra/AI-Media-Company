@@ -241,8 +241,8 @@ export async function batchPublish(
   const results = await Promise.allSettled(
     contents.map(({ platform, content }) => {
       switch (platform) {
-        case 'linkedin': return publishToLinkedIn(content);
-        case 'twitter': return publishToTwitter(content);
+        case 'linkedin': return publishToLinkedIn(content as { text: string; title?: string; url?: string });
+        case 'twitter': return publishToTwitter(content as { text: string });
         case 'youtube': return publishToYouTube({ title: content.title || 'SIGNAL Feature', description: content.description || content.text || '', tags: ['SIGNAL', 'founder', 'leadership'] });
         case 'website': return publishToWebsite({ type: 'article', data: content });
         default: return Promise.resolve({ platform, success: false, error: 'Unknown platform' } as PublishResult);
