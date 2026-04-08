@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getLeadDb } from '@signal/lib/db';
+import { getNeonDb } from '@signal/lib/neon';
 
 export async function GET() {
   try {
@@ -11,18 +11,18 @@ export async function GET() {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    const db = getLeadDb();
-    const session = db.prepare(`
+    const db = getNeonDb();
+    const rows = await db`
       SELECT s.*, u.username FROM sessions s
       JOIN admin_users u ON u.id = s.user_id
-      WHERE s.id = ? AND s.expires_at > datetime('now')
-    `).get(sessionId) as { username: string } | undefined;
+      WHERE s.id = ${sessionId} AND s.expires_at > NOW()
+    ` as unknown as Array<{ username: string }>;
 
-    if (!session) {
+    if (!rows[0]) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    return NextResponse.json({ authenticated: true, username: session.username });
+    return NextResponse.json({ authenticated: true, username: rows[0].username });
   } catch (err) {
     console.error('Session check error:', err);
     return NextResponse.json({ authenticated: false }, { status: 401 });

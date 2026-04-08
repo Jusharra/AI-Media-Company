@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { getLeadDb } from '@signal/lib/db';
+import { getNeonDb } from '@signal/lib/neon';
 
 // GET /api/auth/linkedin/callback — LinkedIn redirects here after user approves
 export async function GET(request: Request) {
@@ -8,24 +8,24 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const error = searchParams.get('error');
   const errorDesc = searchParams.get('error_description');
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   if (error) {
     return NextResponse.redirect(
-      `/dashboard?platform_error=linkedin&reason=${encodeURIComponent(errorDesc || error)}`
+      `${baseUrl}/dashboard?platform_error=linkedin&reason=${encodeURIComponent(errorDesc || error)}`
     );
   }
 
   if (!code) {
-    return NextResponse.redirect('/dashboard?platform_error=linkedin&reason=no_code');
+    return NextResponse.redirect(`${baseUrl}/dashboard?platform_error=linkedin&reason=no_code`);
   }
 
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   const redirectUri = `${baseUrl}/api/auth/linkedin/callback`;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect('/dashboard?platform_error=linkedin&reason=missing_credentials');
+    return NextResponse.redirect(`${baseUrl}/dashboard?platform_error=linkedin&reason=missing_credentials`);
   }
 
   try {
@@ -53,28 +53,19 @@ export async function GET(request: Request) {
     });
     const profile = profileRes.data as { name?: string; sub?: string };
 
-    // Store token in lead DB for runtime use (avoids editing .env.local manually)
-    const db = getLeadDb();
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS platform_tokens (
-        platform TEXT PRIMARY KEY,
-        access_token TEXT NOT NULL,
-        expires_at TEXT,
-        profile_name TEXT,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
-    db.prepare(`
+    const profileName = profile.name || profile.sub || 'Connected';
+
+    const db = getNeonDb();
+    await db`
       INSERT INTO platform_tokens (platform, access_token, expires_at, profile_name, updated_at)
-      VALUES ('linkedin', ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(platform) DO UPDATE SET
-        access_token = excluded.access_token,
-        expires_at = excluded.expires_at,
-        profile_name = excluded.profile_name,
-        updated_at = CURRENT_TIMESTAMP
-    `).run(access_token, expiresAt, profile.name || profile.sub || 'Connected');
+      VALUES ('linkedin', ${access_token}, ${expiresAt}, ${profileName}, NOW())
+      ON CONFLICT (platform) DO UPDATE SET
+        access_token = EXCLUDED.access_token,
+        expires_at = EXCLUDED.expires_at,
+        profile_name = EXCLUDED.profile_name,
+        updated_at = NOW()
+    `;
 
     const name = encodeURIComponent(profile.name || 'your account');
     return NextResponse.redirect(`${baseUrl}/dashboard?platform_connected=linkedin&name=${name}`);

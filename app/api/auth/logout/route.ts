@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getLeadDb } from '@signal/lib/db';
+import { getNeonDb } from '@signal/lib/neon';
 
 export async function POST() {
   try {
@@ -8,8 +8,8 @@ export async function POST() {
     const sessionId = cookieStore.get('signal_session')?.value;
 
     if (sessionId) {
-      const db = getLeadDb();
-      db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+      const db = getNeonDb();
+      await db`DELETE FROM sessions WHERE id = ${sessionId}`;
     }
 
     const response = NextResponse.json({ success: true });

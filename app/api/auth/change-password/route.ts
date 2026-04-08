@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { getLeadDb } from '@signal/lib/db';
+import { getNeonDb } from '@signal/lib/neon';
 
 export async function POST(request: Request) {
   try {
@@ -9,10 +9,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const db = getLeadDb();
-    const session = db.prepare(
-      "SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')"
-    ).get(sessionToken) as { user_id: string } | undefined;
+    const db = getNeonDb();
+    const sessions = await db`
+      SELECT user_id FROM sessions WHERE token = ${sessionToken} AND expires_at > NOW()
+    ` as unknown as Array<{ user_id: string }>;
+    const session = sessions[0];
 
     if (!session) {
       return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
@@ -31,9 +32,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
     }
 
-    const user = db.prepare('SELECT * FROM admin_users WHERE id = ?').get(session.user_id) as {
-      id: string; password_hash: string;
-    } | undefined;
+    const users = await db`
+      SELECT id, password_hash FROM admin_users WHERE id = ${session.user_id}
+    ` as unknown as Array<{ id: string; password_hash: string }>;
+    const user = users[0];
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -45,10 +47,10 @@ export async function POST(request: Request) {
     }
 
     const newHash = await bcrypt.hash(newPassword, 12);
-    db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').run(newHash, user.id);
+    await db`UPDATE admin_users SET password_hash = ${newHash} WHERE id = ${user.id}`;
 
     // Invalidate all other sessions for this user
-    db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(user.id, sessionToken);
+    await db`DELETE FROM sessions WHERE user_id = ${user.id} AND token != ${sessionToken}`;
 
     return NextResponse.json({ success: true });
   } catch (err) {

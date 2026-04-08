@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { TwitterApi } from 'twitter-api-v2';
-import { getLeadDb } from '@signal/lib/db';
+import { getNeonDb } from '@signal/lib/neon';
 
 // GET /api/auth/twitter/callback — Twitter redirects here after user approves
 export async function GET(request: Request) {
@@ -55,30 +55,21 @@ export async function GET(request: Request) {
     const me = await authedClient.v2.me();
     const username = me.data.username || 'unknown';
 
-    // Save token to lead DB
-    const db = getLeadDb();
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS platform_tokens (
-        platform TEXT PRIMARY KEY,
-        access_token TEXT NOT NULL,
-        refresh_token TEXT,
-        expires_at TEXT,
-        profile_name TEXT,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
-    db.prepare(`
+    const profileName = `@${username}`;
+    const refreshTokenVal = refreshToken || null;
+
+    const db = getNeonDb();
+    await db`
       INSERT INTO platform_tokens (platform, access_token, refresh_token, expires_at, profile_name, updated_at)
-      VALUES ('twitter', ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(platform) DO UPDATE SET
-        access_token = excluded.access_token,
-        refresh_token = excluded.refresh_token,
-        expires_at = excluded.expires_at,
-        profile_name = excluded.profile_name,
-        updated_at = CURRENT_TIMESTAMP
-    `).run(accessToken, refreshToken || null, expiresAt, `@${username}`);
+      VALUES ('twitter', ${accessToken}, ${refreshTokenVal}, ${expiresAt}, ${profileName}, NOW())
+      ON CONFLICT (platform) DO UPDATE SET
+        access_token = EXCLUDED.access_token,
+        refresh_token = EXCLUDED.refresh_token,
+        expires_at = EXCLUDED.expires_at,
+        profile_name = EXCLUDED.profile_name,
+        updated_at = NOW()
+    `;
 
     const response = NextResponse.redirect(
       `${baseUrl}/dashboard?platform_connected=twitter&name=${encodeURIComponent('@' + username)}`

@@ -13,7 +13,7 @@ export interface PublishResult {
 // ============================================================
 // LinkedIn API
 // Token loaded from .env.local (LINKEDIN_ACCESS_TOKEN) or
-// from the lead DB after completing the OAuth flow at
+// from Neon DB after completing the OAuth flow at
 // /api/auth/linkedin → /api/auth/linkedin/callback
 // ============================================================
 let _linkedInToken: string | null = null;
@@ -27,16 +27,17 @@ async function getLinkedInToken(): Promise<string | null> {
 
   // Fall back to token saved by the OAuth callback
   try {
-    const { getLeadDb } = await import('./db');
-    const db = getLeadDb();
-    const row = db.prepare(
-      "SELECT access_token, expires_at FROM platform_tokens WHERE platform = 'linkedin'"
-    ).get() as { access_token: string; expires_at: string } | undefined;
+    const { getNeonDb } = await import('./neon');
+    const db = getNeonDb();
+    const rows = await db`
+      SELECT access_token, expires_at FROM platform_tokens WHERE platform = 'linkedin'
+    ` as unknown as Array<{ access_token: string; expires_at: string }>;
+    const row = rows[0];
     if (row) {
       const expired = row.expires_at && new Date(row.expires_at) < new Date();
       if (!expired) { _linkedInToken = row.access_token; return row.access_token; }
     }
-  } catch { /* DB may not exist yet */ }
+  } catch { /* DB may not be configured yet */ }
 
   return null;
 }
