@@ -42,7 +42,11 @@ export async function runSignalScout(
       .join('');
 
     // Parse JSON from response
-    const result = extractJson(rawText);
+    const result = extractJson(rawText) as {
+      entity_data: { industry: Industry };
+      scoring: { total: number };
+      hook: string;
+    };
 
     // Write entity to db
     db.prepare(`

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import useSWR from 'swr';
 import { PipelineProgress } from '@/components/admin/PipelineProgress';
 import { GateApprovalModal } from '@/components/admin/GateApprovalModal';
-import { SectorBadge } from '@/components/admin/SectorBadge';
 import { MessageStream } from '@/components/admin/MessageStream';
 import { InterviewPanel } from '@/components/admin/InterviewPanel';
 import type { PipelineState, GateNumber, GateDecision } from '@signal/lib/types';
@@ -122,7 +121,7 @@ export default function PipelinePage() {
 
                 <PipelineProgress
                   currentStage={p.currentStage}
-                  gateStatus={gateStatus}
+                  gateStatus={gateStatus as Record<string, string | null>}
                   entityName=""
                 />
 
