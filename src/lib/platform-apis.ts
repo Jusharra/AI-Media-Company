@@ -269,7 +269,7 @@ export async function getEngagementMetrics(
       const client = new TwitterApi(process.env.TWITTER_ACCESS_TOKEN || '');
       const tweet = await client.v2.singleTweet(postId, { 'tweet.fields': ['public_metrics'] });
       const m = tweet.data.public_metrics;
-      if (m) return { views: m.impression_count ?? 0, likes: m.like_count, shares: m.retweet_count, clicks: m.url_link_clicks ?? 0 };
+      if (m) return { views: m.impression_count ?? 0, likes: m.like_count, shares: m.retweet_count, clicks: (m as unknown as Record<string, number | undefined>)['url_link_clicks'] ?? 0 };
     } catch { /* fall through to stub */ }
   }
 
