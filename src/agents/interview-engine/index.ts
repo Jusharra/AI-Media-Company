@@ -31,7 +31,6 @@ export async function runInterviewModeA(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 4096,
-      ...({ thinking: { type: 'enabled', budget_tokens: 4000 } } as any),
       system: INTERVIEW_MODE_A_SYSTEM,
       messages: [{
         role: 'user',
@@ -105,7 +104,6 @@ export async function runInterviewModeB(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 8192,
-      ...({ thinking: { type: 'enabled', budget_tokens: 8000 } } as any),
       system: INTERVIEW_MODE_B_SYSTEM,
       messages: [{
         role: 'user',

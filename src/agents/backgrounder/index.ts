@@ -46,7 +46,6 @@ export async function runBackgrounder(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 8192,
-      ...({ thinking: { type: 'enabled', budget_tokens: 8000 } } as any),
       system: BACKGROUNDER_SYSTEM,
       messages: [{
         role: 'user',

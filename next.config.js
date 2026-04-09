@@ -7,10 +7,7 @@ const nextConfig = {
   env: {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     SESSION_SECRET: process.env.SESSION_SECRET,
-    DB_DIR: process.env.DB_DIR || './data',
-    ADMIN_SITE_URL: process.env.ADMIN_SITE_URL || 'http://localhost:3000',
-    NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3000',
-    PUBLIC_SITE_URL: process.env.PUBLIC_SITE_URL || 'http://localhost:3000',
+    DB_DIR: process.env.DB_DIR || '/tmp/signal-dbs',
     LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
     LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
     LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN,

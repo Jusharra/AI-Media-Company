@@ -19,7 +19,6 @@ async function generate(systemPrompt: string, userPrompt: string, maxTokens = 60
   const stream = await client.messages.stream({
     model: 'claude-opus-4-6',
     max_tokens: maxTokens,
-    ...({ thinking: { type: 'enabled', budget_tokens: 5000 } } as any),
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });

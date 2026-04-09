@@ -27,7 +27,6 @@ export async function runSignalScout(
     const stream = await client.messages.stream({
       model: 'claude-opus-4-6',
       max_tokens: 4096,
-      ...({ thinking: { type: 'enabled', budget_tokens: 4000 } } as any),
       system: SIGNAL_SCOUT_SYSTEM,
       messages: [{
         role: 'user',
